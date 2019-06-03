@@ -34,7 +34,8 @@ public static class testSimpleReflectionUserExtentions
  Чтобы "включить" данный функционал нам нужно будет лишь установить один nuget пакет и все заработает сразу же. Далее просто вызываем ``` GetBakedType ``` там где нужно, получаем ошибку компиляции которая говорит что рефлексия для данного типа еще не готова, вызываем codefix и все готово. У нас есть метод расширения(extension method) который вернет нам все публичные проперти. 
  
  Думаю в движении будет проще понять как оно вообще работает, вот короткая визуализация:
-<iframe width="900" height="500" src="https://www.youtube.com/embed/C9O1413fHac" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<oembed>https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DC9O1413fHac&format=json</oembed>
 
  Кому интересно попробовать это локально, можно установить nuget пакет под именем SimpleReflection:
 ```
@@ -172,8 +173,7 @@ private void HandelBuilder(OperationAnalysisContext context)
 }
 ```
 
-<details>
-  <summary> Полный код анализатора</summary>
+<spoiler title="Полный код анализатора">
 
 ``` cs
 
@@ -244,7 +244,7 @@ private void HandelBuilder(OperationAnalysisContext context)
         }
     }
 ```
-</details>
+</spoiler>
 
 # Реализация кодогенератора
 
@@ -328,8 +328,8 @@ public static class {symbol.GetSimpleReflectionExtentionTypeName()}
 }} ";
 }
 ```
-<details>
-  <summary>Полный код кодогенератора</summary>
+<spoiler title="Полный код кодогенератора">
+
 
 ``` cs
 using Microsoft.CodeAnalysis;
@@ -431,7 +431,7 @@ namespace SimpleReflection
 }
 ```
 
-</details>
+</spoiler>
 
 # Итоги
 
