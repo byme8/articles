@@ -42,7 +42,7 @@ public static class testSimpleReflectionUserExtentions
 Install-Package SimpleReflection
 ```
 
-Кому интересны исходники, они лежат (тут)[https://github.com/byme8/SimpleReflection].
+Кому интересны исходники, они лежат [тут](https://github.com/byme8/SimpleReflection).
 
  Хочу предупредить данная реализация не рассчитана на реальное применение. Я лишь хочу показать способ для организации кодогенерации при помощи Roslyn.
  
