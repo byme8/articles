@@ -4,9 +4,42 @@
 
  <cut/>
 
- Первым делом, думаю стоит описать то, как будет работать мой Ahead of Time Mapper(AOTMapper). Точкой входа нашего мапера будет служить обобщенный метод расширение(generic extention method)``` MapTo<> ```. Анализатор будет искать его и предлагать реализовать метод расширение ``` MapToSomeType ```, где ``` SomeType ``` это тип который передан в ```MapTo<> ```.
+ Первым делом, думаю стоит описать то, как будет работать мой Ahead of Time Mapper(AOTMapper). Точкой входа нашего мапера будет служить обобщенный метод расширение(generic extention method)``` MapTo<> ```. Анализатор будет искать его и предлагать реализовать метод расширение ``` MapToUser ```, где ``` User ``` это тип который передан в ```MapTo<> ```.
 
- Сгенерённый ``` MapToSomeType ``` может иметь следующий вид:
+Как пример возьмем следующее классы:
+``` cs
+namespace AOTMapper.Benchmark.Data
+{
+    public class UserEntity
+    {
+        public UserEntity()
+        {
+
+        }
+
+        public UserEntity(Guid id, string firstName, string lastName)
+        {
+            this.Id = id;
+            this.FirstName = firstName;
+            this.LastName = lastName;
+        }
+
+        public Guid Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; } 
+    }
+
+    public class User
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+
+        public string Name { get; set; }
+    }
+}
+```
+
+ Сгенерённый ``` MapToUser ``` будет иметь следующий вид:
 
  ``` cs 
 public static AOTMapper.Benchmark.Data.User MapToUser(this AOTMapper.Benchmark.Data.UserEntity input)
@@ -34,7 +67,7 @@ public static AOTMapper.Benchmark.Data.User MapToUser(this AOTMapper.Benchmark.D
 }
 ```
 
-Во время генерации ``` MapToSomeType ``` место вызова ``` MapTo<SomeType> ``` будет заменено на ``` MapToSomeType ```. 
+Во время генерации ``` MapToUser ``` место вызова ``` MapTo<User> ``` будет заменено на ``` MapToUser ```. 
 
 Как это работает в движении можно посмотреть тут:
 
