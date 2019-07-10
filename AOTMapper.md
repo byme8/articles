@@ -40,11 +40,16 @@ public static AOTMapper.Benchmark.Data.User MapToUser(this AOTMapper.Benchmark.D
 
 <oembed> https://youtu.be/BCznYk2n3II </oembed>
 
+Также AOTMapper можно установить через nuget:
+```
+Install-Package AOTMapper
+```
+
 Я долго думал как это можно сделать по другому и в конце-концов сошелся на мысли, что это не так уж и плохо, поскольку это решает некоторые неудобства, которые мучили меня при использовании ``` AutoMapper ```. 
 
 Во первых, мы получаем разные методы расширения для разных типов, в следствии чего, для него абстрактного типа ``` User ``` мы можем очень легко при помощи IntelliSense-а узнать какие мапинги уже реализованы без необходимости искать тот файл, где прописаны наши мапинги. Достаточно лишь посмотреть какие методы расширения уже есть.
 
-Во вторых, в рантайме это просто метод расширение и таким образом мы избегаем любых накладных расходов связанных с вызовом нашего мапера. Я понимаю что разработчики ``` AutoMapper ``` потратили много усилий на оптимизацию вызова, но дополнительные затраты всеравно есть. Мой небольшой бенчмарк показал что в среднем это 140-150ns на вызов, без учета времени на инициализацию. Сам бенчмарк можно посмотреть в репозитории, а результаты замеров ниже.
+Во вторых, в рантайме это просто метод расширение и таким образом мы избегаем любых накладных расходов связанных с вызовом нашего мапера. Я понимаю что разработчики ``` AutoMapper ``` потратили много усилий на оптимизацию вызова, но дополнительные затраты всеравно есть. Мой небольшой бенчмарк показал что в среднем это 140-150ns на вызов, без учета времени на инициализацию. Сам бенчмарк можно посмотреть в репозиторий, а результаты замеров ниже.
 
 |                 Method |      Mean |     Error |    StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------- |----------:|----------:|----------:|-------:|------:|------:|----------:|
@@ -90,10 +95,97 @@ private void Handle(OperationAnalysisContext context)
 }
 ```
 
-Все что он делает это проверяет тот ли это метод который нам нужен, извлекает тип из сущности на которой вызван ``` MapTo<> ``` вместе из первым параметром обобщенного метода и генерит диагностическое сообщение. Оно уже в свою очередь будет обработано внутри ``` AOTMapperCodeFixProvider```, а именно, заменен вызова ``` MapTo<> ``` на конкретную реализацию и сгенерен файл с методом расширением.
+Все что он делает это проверяет тот ли это метод который нам нужен, извлекает тип из сущности на которой вызван ``` MapTo<> ``` вместе из первым параметром обобщенного метода и генерит диагностическое сообщение. 
 
-Весь код можно посмотреть [тут](https://github.com/byme8/AOTMapper).
-Сам AOTMapper можно установить через nuget:
+Оно уже в свою очередь будет обработано внутри ``` AOTMapperCodeFixProvider```. Здесь мы достает информацию о типах над которыми будем запускать кодогенерацию. Потом заменяем вызов ``` MapTo<> ``` на конкретную реализацию. После чего вызываем ``` AOTMapperGenerator ``` который сгенерит нам файл с методом расширением.
+
+В коде это имеет следующий вид: 
+
+``` cs 
+ private async Task<Document> Handle(Diagnostic diagnostic, CodeFixContext context)
+{
+    var fromTypeName = diagnostic.Properties["fromType"];
+    var toTypeName = diagnostic.Properties["toType"];
+    var document = context.Document;
+
+    var semanticModel = await document.GetSemanticModelAsync();
+    
+    var root = await diagnostic.Location.SourceTree.GetRootAsync();
+    var call = root.FindNode(diagnostic.Location.SourceSpan);
+    root = root.ReplaceNode(call, SyntaxFactory.IdentifierName($"MapTo{toTypeName.Split('.').Last()}"));
+
+    var pairs = ImmutableDictionary<string, string>.Empty
+        .Add(fromTypeName, toTypeName);
+
+    var generator = new AOTMapperGenerator(document.Project, semanticModel.Compilation);
+    generator.GenerateMappers(pairs, new[] { "AOTMapper", "Mappers" });
+
+    var newProject = generator.Project;
+    var documentInNewProject = newProject.GetDocument(document.Id);
+
+    return documentInNewProject.WithSyntaxRoot(root);
+}
 ```
-Install-Package AOTMapper
+
+Сам ``` AOTMapperGenerator ``` изменяет входящий проект добаляя к нему реализацию мапинга между типами.
+Сделано это следующим образом:
+``` cs
+public void GenerateMappers(ImmutableDictionary<string, string> values, string[] outputNamespace)
+{
+    foreach (var value in values)
+    {
+        var fromSymbol = this.Compilation.GetTypeByMetadataName(value.Key);
+        var toSymbol = this.Compilation.GetTypeByMetadataName(value.Value);
+        var fromSymbolName = fromSymbol.ToDisplayString().Replace(".", "");
+        var toSymbolName = toSymbol.ToDisplayString().Replace(".", "");
+        var fileName = $"{fromSymbolName}_To_{toSymbolName}";
+
+        var source = this.GenerateMapper(fromSymbol, toSymbol, fileName);
+
+        
+        this.Project = this.Project
+            .AddDocument($"{fileName}.cs", source)
+            .WithFolders(outputNamespace)
+            .Project;
+    }
+}
+
+private string GenerateMapper(INamedTypeSymbol fromSymbol, INamedTypeSymbol toSymbol, string fileName)
+{
+    var fromProperties = fromSymbol.GetAllMembers()
+        .OfType<IPropertySymbol>()
+        .Where(o => (o.DeclaredAccessibility & Accessibility.Public) > 0)
+        .ToDictionary(o => o.Name, o => o.Type);
+
+    var toProperties = toSymbol.GetAllMembers()
+        .OfType<IPropertySymbol>()
+        .Where(o => (o.DeclaredAccessibility & Accessibility.Public) > 0)
+        .ToDictionary(o => o.Name, o => o.Type);
+
+        return $@"
+public static class {fileName}Extentions 
+{{
+    public static {toSymbol.ToDisplayString()} MapTo{toSymbol.ToDisplayString().Split('.').Last()}(this {fromSymbol.ToDisplayString()} input)
+    {{
+        var output = new {toSymbol.ToDisplayString()}();
+{ toProperties
+    .Where(o => fromProperties.TryGetValue(o.Key, out var type) && type == o.Value)
+    .Select(o => $"        output.{o.Key} = input.{o.Key};" )
+    .JoinWithNewLine()
+}
+{ toProperties
+    .Where(o => !fromProperties.TryGetValue(o.Key, out var type) || type != o.Value)
+    .Select(o => $"        output.{o.Key} = ; // missing property")
+    .JoinWithNewLine()
+}
+        return output;
+    }}
+}}
+";
+}
 ```
+
+Полный код проекта можно посмотреть [тут](https://github.com/byme8/AOTMapper).
+
+
+Серед текущих недоработок которые я заметил можно выделить то, что из коробки нельзя сгенерить две реализации для одиинаковых типов, но всегда можно вручную переименовать уже сгенереный файл/метод это никак не повлияет на работоспособность. Кроме того, сейчас нет проверки на то изменился ли тип после последней генерации. У меня есть идея как это можно реализовать, но меня слущает что это может существенно увеличить нагрузку, а проверить єто на деле руки пока не дошли.
