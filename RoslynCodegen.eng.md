@@ -32,4 +32,25 @@ Nothing supernature or complicated, but you have to implemant it for all types a
 
 To add support for such analyzer you will need just to install a one nuget package. Then we can just call our ``` GetBakedType ```, get compilation error, because it doesn't exist yet, calling code fix and it's done. We have implemented extension method thas is going to return all public properties assosiated with paticular type.
 
-I think it will be easier to undestand what is happening in motion
+I think it will be easier to undestand what is happening in motion.
+
+https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DC9O1413fHac&format=json
+
+If someone want to try it localy you can install nuget package SimpleReflection.
+
+```
+Install-Package SimpleReflection
+```
+
+Source code is [here]()
+
+# Prepearing
+
+
+# Implementation
+
+I will not write about whole analyzer developing story, because it's relativly easy. Iam gonig describe only major steps.
+
+
+
+
