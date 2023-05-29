@@ -1,5 +1,5 @@
 
-In this article, I want to showcase a new way to create web APIs with GraphQL. We will look at its benefits compared to traditional REST API when it is better to use it, and how we can transform existing REST API to support GraphQL.
+In this article, I want to showcase a new way to create web APIs with GraphQL. We will look at its benefits compared to traditional REST API, and how we can transform existing REST API to support GraphQL.
 
 # Over and under fetching
 
