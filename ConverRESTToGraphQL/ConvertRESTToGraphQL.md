@@ -390,7 +390,7 @@ services
     .AddGraphQLServer()
     .AddQueryType<Query>()
 +   .AddMutationType<Mutation>()
-+   .AddTypeExtension<>(UserMutationExtensions);
++   .AddTypeExtension<UserMutationExtensions>();
 
 // ...
 
@@ -418,4 +418,4 @@ In the beginning, we had a brief look at the reasons why GraphQL was developed. 
 
 In the second part, we had a look on how to set up GraphQL server. We figured out how to create GraphQL fields and what we need to consider when transforming existing REST endpoints into GraphQL fields. 
 
-I hope you find this article useful. In the next article, we will look at how to do integration testing of our GraphQL APIs.
+I hope you find this article useful. In the next time, we will look at how to do integration testing of our GraphQL APIs.
